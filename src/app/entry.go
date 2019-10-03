@@ -66,4 +66,5 @@ func main() {
 	}
 
 	start(args, hackMode)
+	log.Println("Done!")
 }

@@ -7,10 +7,10 @@ import (
 )
 
 func main() {
-	path := "/home/dmitry/Desktop/11"
+	path := `E:\PROJECT\Go\crypto-go\testfiles\`
 
-	for i := 0; i < 10000; i++ {
-		err := ioutil.WriteFile(path+"/"+"file"+strconv.Itoa(i), []byte("Data file"), 0644)
+	for i := 0; i < 1000; i++ {
+		err := ioutil.WriteFile(path+"file"+strconv.Itoa(i), []byte("Data file"), 0644)
 
 		if err != nil {
 			log.Fatal(err)
