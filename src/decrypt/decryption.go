@@ -7,11 +7,22 @@ import (
 	"errors"
 	"log"
 	"filesOperations"
+	"sync"
+	s "strings"
 )
 
-func ToDecrypt(pathToFile string, key []byte, cryptoPrefix string) {
+func ToDecrypt(wg *sync.WaitGroup, pathToFile string, key []byte, cryptoPrefix string, isAsync bool) {
+	if isAsync {
+		defer wg.Done()
+	}
+	
+	if !s.HasSuffix(pathToFile, cryptoPrefix) {
+		return
+	}
+
 	if decrypted, err := decrypt(key, filesOperations.ReadFile(pathToFile)); err != nil {
 		log.Println(err)
+		return
 	} else {
 		filesOperations.Clear(pathToFile)
 		filesOperations.WriteFile(pathToFile, []byte(decrypted), cryptoPrefix)

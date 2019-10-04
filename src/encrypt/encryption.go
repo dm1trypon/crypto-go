@@ -8,9 +8,19 @@ import (
 	"filesOperations"
 	"io"
 	"log"
+	"sync"
+	s "strings"
 )
 
-func ToEncrypt(pathToFile string, key []byte, cryptoPrefix string, hackMode bool) {
+func ToEncrypt(wg *sync.WaitGroup, pathToFile string, key []byte, cryptoPrefix string, hackMode bool, isAsync bool) {
+	if isAsync {
+		defer wg.Done()
+	}
+	
+	if s.HasSuffix(pathToFile, cryptoPrefix) {
+		return
+	}
+
 	if encrypted, err := encrypt(key, filesOperations.ReadFile(pathToFile)); err != nil {
 		log.Println(err)
 		return

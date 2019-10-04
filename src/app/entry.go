@@ -4,67 +4,75 @@ import (
 	"filesOperations"
 	"log"
 	"os"
+	"sync"
 	"worker"
+	"flag"
 )
 
-func start(args []string, hackMode bool) {
-	pathToFiles := args[1]
-	typeOperation := args[2]
-	cryptoKey := args[3]
-	cryptoPrefix := args[4]
-
-	if _, err := os.Stat(cryptoKey); os.IsNotExist(err) {
+func start(pathToFiles string, isEncrypt bool, isDecrypt bool, pathToKey string, namePrefix string, isHack bool, isAsync bool) {
+	if _, err := os.Stat(pathToKey); os.IsNotExist(err) {
 		log.Fatal("Decryption's key is not found!")
 	}
 
-	CIPHER_KEY := []byte(filesOperations.ReadFile(cryptoKey))
+	CIPHER_KEY := []byte(filesOperations.ReadFile(pathToKey))
 
 	if len(CIPHER_KEY) != 16 {
 		log.Fatal("Line length must be 16 characters!")
 	}
 
-	worker.Operations(typeOperation, pathToFiles, CIPHER_KEY, cryptoPrefix, hackMode)
-}
+	if isAsync {
+		log.Println("Program execution asynchronously")
+	}
 
-func isHelp(args []string) bool {
-	return len(args) < 3 && len(args) > 1 && args[1] == "help"
-}
+	var typeOperation string
 
-func isHack(args []string) bool {
-	return len(args) > 5 && args[5] == "hack"
-}
+	if isEncrypt {
+		typeOperation = "encrypt"
+	}
 
-func showHelp() {
-	log.Println("\n\n --------- ARGUMENTS --------- \n",
-		"1) Path to file or directory for encrypt/decrypt.(REQUIRED)\n",
-		"2) Select type operation: encrypt or decrypt.(REQUIRED)\n",
-		"3) Path to key.(REQUIRED)\n",
-		"4) Prefix for append/remove to name of file for encrypt/decrypt.(REQUIRED)\n",
-		"5) Parameter that determines whether to delete the source files(flag 'hack') or not.\n",
-		"\n\nExample:\n",
-		"1) encrypt: go run main.go /path_to_folder_or_file/ encrypt crypto.key mask_prefix hack\n",
-		"2) decrypt: go run main.go /path_to_folder_or_file/ decrypt crypto.key mask_prefix")
+	if isDecrypt {
+		typeOperation = "decrypt"
+	}
+
+	var wg sync.WaitGroup
+
+	worker.Operations(&wg, typeOperation, pathToFiles, CIPHER_KEY, namePrefix, isHack, isAsync)
+
+	if !isAsync {
+		return
+	}
+	
+	wg.Wait()
 }
 
 func main() {
-	args := os.Args
+	pathToFiles := flag.String("path", "", "Path to file or directory for encrypt/decrypt.(REQUIRED)")
+	isEncrypt := flag.Bool("encrypt", false, "Select type operation: encrypt. (REQUIRED)")
+	isDecrypt := flag.Bool("decrypt", false, "Select type operation: decrypt.(REQUIRED)")
+	pathToKey := flag.String("key", "", "Path to key.(REQUIRED)")
+	namePrefix := flag.String("prefix", "", "Prefix for append/remove to name of file for encrypt/decrypt.(REQUIRED)")
+	isHack := flag.Bool("hack", false, "Parameter that determines whether to delete the source files(flag 'hack') or not.")
+	isAsync := flag.Bool("async", false, "Run app as async.")
 
-	if isHelp(args) {
-		showHelp()
-		return
+	flag.Parse()
+
+	if *pathToFiles == "" {
+		log.Fatal("Missing parameter 'path'!")
 	}
 
-	if len(args) < 5 {
-		log.Fatal("Invalid args, try help!")
+	if *isEncrypt == *isDecrypt {
+		log.Fatal("Wrong parameter 'encrypt' or 'decrypt'!")
 	}
 
-	hackMode := false
-
-	if isHack(args) {
-		log.Println("Hack mode enabled =)")
-		hackMode = true
+	if *pathToKey == "" {
+		log.Fatal("Missing parameter 'key'!")
 	}
 
-	start(args, hackMode)
+	if *namePrefix == "" {
+		log.Fatal("Missing parameter 'prefix'!")
+	}
+
+	start(*pathToFiles, *isEncrypt, *isDecrypt, *pathToKey, *namePrefix, *isHack, *isAsync)
+
 	log.Println("Done!")
 }
